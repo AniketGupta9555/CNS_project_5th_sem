@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packet Sniffer Web Interface</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        button { margin: 10px; padding: 10px 20px; cursor: pointer; }
+        #status { font-weight: bold; margin-top: 10px; }
+        #packets { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Packet Sniffer Web Interface</h1>
+
+    <button id="startBtn" onclick="startCapture()">Start Capture</button>
+    <button id="stopBtn" onclick="stopCapture()" disabled>Stop Capture</button>
+    <button id="wiresharkBtn" onclick="openWireshark()">Open in Wireshark</button>
+
+    <div id="status">Status: Idle</div>
+    <div id="packetCount">Packets Captured: 0</div>
+
+    <div id="packets"></div>
+
+    <script>
+        function startCapture() {
+            fetch('/start_capture', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('status').innerText = 'Status: Capturing';
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    updateStatus();
+                    updatePackets();
+                });
+        }
+
+        function stopCapture() {
+            fetch('/stop_capture', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('status').innerText = 'Status: Idle';
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                });
+        }
+
+        function openWireshark() {
+            fetch('/open_wireshark')
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.status);
+                });
+        }
+
+        function updateStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('status').innerText = `Status: ${data.status}`;
+                    document.getElementById('packetCount').innerText = `Packets Captured: ${data.packet_count} / ${data.max_packets}`;
+                    if (data.status === 'Capturing') {
+                        setTimeout(updateStatus, 1000); // Refresh status every second
+                    }
+                });
+        }
+
+        function updatePackets() {
+            fetch('/get_packets')
+                .then(response => response.json())
+                .then(data => {
+                    let packetDiv = document.getElementById('packets');
+                    packetDiv.innerHTML = '';
+                    data.forEach((packet, index) => {
+                        let packetInfo = `<p>Packet ${index + 1}: ${JSON.stringify(packet)}</p>`;
+                        packetDiv.innerHTML += packetInfo;
+                    });
+                });
+        }
+    </script>
+</body>
+</html>
